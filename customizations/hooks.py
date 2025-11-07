@@ -7,9 +7,9 @@ app_license = "mit"
 
 # Apps
 # ------------------
-
 # required_apps = []
-
+#app_include_js = "/assets/customizations/js/custom_timeline.js"
+app_include_js="/assets/customizations/js/global_timeline.js"
 # Each item in the list will be shown as an app in the apps page
 # add_to_apps_screen = [
 # 	{
