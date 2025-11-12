@@ -54,18 +54,20 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
 
         let commentsToggle, commentsButtons;
 
-        // ===== Comments Header =====
+        // ===== 5. Comments Header (Now matches Activity layout) =====
         if (commentInputExists) {
             const commentsHeading = $(`
                 <div class="comments-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h4 style="margin:0;">Comments</h4>
-                    <div style="display:flex; align-items:center;">
-                        <div class="comments-action-buttons" style="margin-right:10px; display:flex; gap:8px;"></div>
-                        <label class="switch" style="margin:0; cursor:pointer;">
-                            <input type="checkbox" class="comments-toggle" ${showComments ? 'checked' : ''}>
-                            <span class="slider round"></span>
-                        </label>
-                        <span style="margin-left:5px;">Show All Comments</span>
+                    <div class="comments-controls" style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
+                        <div class="comments-action-buttons" style="display:flex; align-items:center; gap:12px;"></div>
+                        <div class="comments-toggle-container" style="display:flex; align-items:center;">
+                            <label class="switch" style="margin:0; cursor:pointer;">
+                                <input type="checkbox" class="comments-toggle" ${showComments ? 'checked' : ''}>
+                                <span class="slider round"></span>
+                            </label>
+                            <span style="margin-left:5px;">Show All Comments</span>
+                        </div>
                     </div>
                 </div>
             `);
@@ -74,12 +76,12 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
             commentsToggle = commentsHeading.find('.comments-toggle');
         }
 
-        // ===== Activity Header =====
+        // ===== 6. Activity Header =====
         const activityHeading = $(`
             <div class="activity-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:nowrap; gap:10px;">
                 <h4 style="margin:0;">Activity</h4>
                 <div class="activity-controls" style="display:flex; align-items:center; gap:10px; flex-wrap:nowrap;">
-                    <div class="activity-action-buttons" style="display:flex; align-items:center; gap:8px; flex-wrap:nowrap;"></div>
+                    <div class="activity-action-buttons" style="display:flex; align-items:center; gap:12px; flex-wrap:nowrap;"></div>
                     <div class="activity-toggle-container" style="display:flex; align-items:center;">
                         <label class="switch" style="margin:0; cursor:pointer;">
                             <input type="checkbox" class="activity-toggle" ${showActivity ? 'checked' : ''}>
@@ -97,7 +99,7 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
         const activityToggleContainer = activityHeading.find('.activity-toggle-container');
         const activityToggle = activityHeading.find('.activity-toggle');
 
-        // ===== 8. CSS =====
+        // ===== 7. Global CSS Injection =====
         if (!$('#global-timeline-toggle-style').length) {
             $('head').append(`
                 <style id="global-timeline-toggle-style">
@@ -110,20 +112,31 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
                     input:checked + .slider { background-color: #0b62ff; }
                     input:checked + .slider:before { transform: translateX(20px); }
 
+                    /* Timeline layout adjustments */
                     .form-timeline::before, .new-timeline::before { display: none !important; }
                     .timeline-section { padding-left: 0 !important; margin-bottom: 20px; border-left: none !important; }
                     .activity-section { border-top: 1px solid rgba(255,255,255,0.1); padding-top: 15px; }
+
+                    /* Activity section styles */
                     .activity-header, .activity-controls { flex-wrap: nowrap !important; }
-                    .activity-action-buttons .btn { margin-right: 6px; white-space: nowrap; }
+                    .activity-action-buttons { display:flex; align-items:center; gap:12px; }
+                    .activity-action-buttons .btn:not(:last-child) { margin-right:8px !important; }
+
+                    /* Comments section styles (mirrors Activity layout) */
+                    .comments-controls { display:flex; align-items:center; gap:10px; flex-wrap:nowrap; }
+                    .comments-action-buttons { display:flex; align-items:center; gap:12px !important; }
+                    .comments-action-buttons .btn:not(:last-child) { margin-right:8px !important; }
+                    .comments-toggle-container { display:flex; align-items:center; }
+
+                    /* General */
                     .timeline-item.activity-title, .show-all-activity, .timeline-head { display: none !important; }
-                    .activity-action-buttons { display:flex; gap:8px; align-items:center; }
                     .pin-btn { cursor: pointer; font-size: 12px; margin-left: 10px; color: var(--text-muted); }
                     .pin-btn:hover { text-decoration: underline; color: var(--text-color); }
                 </style>
             `);
         }
 
-        // ===== 9. Separate Comments vs Activity =====
+        // ===== 8. Separate Comments vs Activity =====
         timelineItems.each(function () {
             const item = $(this);
             const doctype = item.attr('data-doctype');
@@ -138,21 +151,19 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
             }
         });
 
-        // ===== 10. Move existing buttons inline (before toggle) =====
+        // ===== 9. Move buttons inline =====
         const moveButtonsInline = () => {
             const buttonItem = frm.$wrapper.find('.timeline-item .timeline-content.action-buttons');
             if (buttonItem.length) {
                 const buttons = buttonItem.find('.btn');
-                // Insert buttons before the toggle container
                 activityToggleContainer.before(buttons);
                 buttonItem.closest('.timeline-item').remove();
             }
         };
-        // Run once and again after 500ms (handles async renders)
         moveButtonsInline();
         setTimeout(moveButtonsInline, 500);
 
-        // ===== 11. Setup toggle handlers =====
+        // ===== 10. Toggle Handlers =====
         if (commentInputExists) {
             commentsToggle.on('change', function () {
                 const checked = this.checked;
@@ -167,17 +178,17 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
             localStorage.setItem(activityKey, checked);
         });
 
-        // ===== 12. Replace timeline content =====
+        // ===== 11. Replace timeline content =====
         mainTimeline.empty();
         if (commentInputExists) mainTimeline.append(commentsWrapper);
         mainTimeline.append(activityWrapper);
         hideOriginalActivity();
 
-        console.log(`[Timeline Custom] Buttons moved inline before toggle`);
+        console.log(`[Timeline Custom] Timeline rebuilt with consistent button spacing`);
     }, 500);
 };
 
-// ===== 14. Apply globally on form refresh =====
+// ===== 12. Apply globally on form refresh =====
 const _old_refresh = frappe.ui.form.Form.prototype.refresh;
 frappe.ui.form.Form.prototype.refresh = function () {
     _old_refresh.apply(this, arguments);
