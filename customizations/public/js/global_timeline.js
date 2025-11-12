@@ -54,7 +54,7 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
 
         let commentsToggle, commentsButtons;
 
-        // ===== 5. Comments Header (Now matches Activity layout) =====
+        // ===== 5. Comments Header =====
         if (commentInputExists) {
             const commentsHeading = $(`
                 <div class="comments-header" style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
@@ -92,10 +92,8 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
                 </div>
             </div>
         `);
-
         activityWrapper.append(activityHeading).append(activityItems);
 
-        const activityButtonsContainer = activityHeading.find('.activity-action-buttons');
         const activityToggleContainer = activityHeading.find('.activity-toggle-container');
         const activityToggle = activityHeading.find('.activity-toggle');
 
@@ -178,7 +176,87 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
             localStorage.setItem(activityKey, checked);
         });
 
-        // ===== 11. Replace timeline content =====
+        // ===== 11. Pin/Unpin Buttons =====
+        const addPinButtons = () => {
+            const $commentItems = commentsList.find('.timeline-item[data-doctype="Comment"]');
+            if ($commentItems.length === 0) return;
+
+            frappe.call({
+                method: 'frappe.client.get_list',
+                args: {
+                    doctype: 'Comment',
+                    filters: {
+                        reference_doctype: frm.doctype,
+                        reference_name: frm.doc.name
+                    },
+                    fields: ['name', 'custom_is_pinned']
+                },
+                callback: function(r) {
+                    const comments = r.message || [];
+
+                    const pinnedComments = [];
+                    const unpinnedComments = [];
+
+                    $commentItems.each(function() {
+                        const $item = $(this);
+                        const commentName = $item.attr('data-name');
+                        const comment = comments.find(c => c.name === commentName);
+                        if (!comment) return;
+
+                        $item.find('.pin-btn').remove();
+
+                        const pinned = comment.custom_is_pinned === 1;
+                        const btnText = pinned ? "Unpin 📌" : "Pin 📌";
+
+                        const $btn = $(`<a class="pin-btn">${btnText}</a>`);
+
+                        $item.find('.timeline-content').append($btn);
+
+                        if (pinned) pinnedComments.push($item);
+                        else unpinnedComments.push($item);
+                    });
+
+                    // Reorder pinned comments first
+                    pinnedComments.forEach($el => commentsList.prepend($el));
+                    unpinnedComments.forEach($el => commentsList.append($el));
+
+                    // Pin/unpin click handler
+                    commentsList.off('click', '.pin-btn');
+                    commentsList.on('click', '.pin-btn', function() {
+                        const $btn = $(this);
+                        const $item = $btn.closest('.timeline-item');
+                        const commentName = $item.attr('data-name');
+                        const comment = comments.find(c => c.name === commentName);
+                        if (!comment) return frappe.msgprint('Comment not found!');
+
+                        const currentlyPinned = comment.custom_is_pinned === 1;
+
+                        frappe.call({
+                            method: 'frappe.client.set_value',
+                            args: {
+                                doctype: 'Comment',
+                                name: commentName,
+                                fieldname: { custom_is_pinned: currentlyPinned ? 0 : 1 }
+                            },
+                            callback: () => {
+                                comment.custom_is_pinned = currentlyPinned ? 0 : 1;
+                                $btn.text(currentlyPinned ? "Pin 📌" : "Unpin 📌");
+
+                                // Move comment dynamically
+                                if (!currentlyPinned) commentsList.prepend($item);
+                                else commentsList.append($item);
+
+                                frappe.show_alert(currentlyPinned ? "Comment Unpinned" : "Comment Pinned");
+                            }
+                        });
+                    });
+                }
+            });
+        };
+
+        addPinButtons();
+
+        // ===== 12. Replace timeline content =====
         mainTimeline.empty();
         if (commentInputExists) mainTimeline.append(commentsWrapper);
         mainTimeline.append(activityWrapper);
@@ -188,7 +266,7 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
     }, 500);
 };
 
-// ===== 12. Apply globally on form refresh =====
+// ===== 13. Apply globally on form refresh =====
 const _old_refresh = frappe.ui.form.Form.prototype.refresh;
 frappe.ui.form.Form.prototype.refresh = function () {
     _old_refresh.apply(this, arguments);
