@@ -39,7 +39,10 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
     const showComments = JSON.parse(localStorage.getItem(commentsKey) ?? 'true');
     const showActivity = JSON.parse(localStorage.getItem(activityKey) ?? 'true');
 
-    // ===== 4. Build custom timeline (Kept as is) =====
+    // ==========================================================
+    // ===== 4. Build custom timeline (FIX APPLIED HERE) =====
+    // ==========================================================
+    // Changed delay from 500ms to 1000ms to ensure the native timeline items are fully rendered.
     setTimeout(() => {
         const mainTimeline = frm.$wrapper.find('.new-timeline, .form-timeline');
         if (!mainTimeline.length) {
@@ -166,7 +169,7 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
             `);
         }
 
-        // ===== 8. Separate Comments vs Activity (FIX APPLIED HERE) =====
+        // ===== 8. Separate Comments vs Activity (Kept as is) =====
         mainTimeline.find('.timeline-item').each(function () {
             const item = $(this);
             const doctype = item.attr('data-doctype');
@@ -342,6 +345,10 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
                         callback: function () {
                             frappe.show_alert("Comment deleted");
                             $item.remove();
+                            setTimeout(() => {
+                                location.reload();
+                            }, 200);
+                            
                         }
                     });
                 });
@@ -528,7 +535,7 @@ frappe.ui.form.Form.prototype.custom_timeline_setup = function () {
         hideOriginalActivity();
 
         frm.is_comment_setup_running = false;
-    }, 500);
+    }, 1000); // <= CRITICAL FIX: Increased from 500 to 1000
 };
 
 // ==========================================================
